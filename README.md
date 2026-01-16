@@ -1,186 +1,123 @@
-infra_demo
-Overview
+---
 
-This project is an infrastructure-focused demo application built to practice deploying a containerized web service using Docker and Kubernetes.
+# infra_demo
 
-It was created as part of my preparation for a full-time infrastructure/Kubernetes-focused role starting in February.
+<p align="left">
+<img src="[https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)" alt="fastapi">
+<img src="[https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/PostgreSQL-4169E1%3Fstyle%3Dfor-the-badge%26logo%3Dpostgresql%26logoColor%3Dwhite)" alt="postgresql">
+<img src="[https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/Docker-2496ED%3Fstyle%3Dfor-the-badge%26logo%3Ddocker%26logoColor%3Dwhite)" alt="docker">
+<img src="[https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white](https://www.google.com/search?q=https://img.shields.io/badge/Kubernetes-326CE5%3Fstyle%3Dfor-the-badge%26logo%3Dkubernetes%26logoColor%3Dwhite)" alt="kubernetes">
+</p>
 
-The main goal of this project is not application complexity, but rather learning how to:
+## 📌 Overview
 
-Containerize an application using Docker
+This project is an infrastructure-focused demo application built to practice deploying a containerized web service using **Docker** and **Kubernetes (kind)**.
 
-Run and validate it locally with Docker Compose
+It serves as a practical exercise for a full-time infrastructure/Kubernetes-focused role. The core objective is mastering the transition from a local Docker environment to a functional Kubernetes cluster.
 
-Deploy it to a Kubernetes cluster (kind)
+## 🏗 Architecture
 
-Connect it to a PostgreSQL database
+```mermaid
+graph TD
+    subgraph Cluster[Kubernetes Cluster]
+        Svc[Service: app-service] -->|NodePort/LoadBalancer| App[FastAPI Pod]
+        App -->|Internal Connection| DB[(PostgreSQL Pod)]
+        DB --- PVC[PersistentVolumeClaim]
+    end
+    Client((Client/Browser)) -->|Port Forward: 8080| Svc
 
-Configure services, health checks, and environment variables
+```
 
-Debug common Kubernetes issues (e.g., image pull errors, misconfigurations)
+## 📂 Project Structure
 
-Architecture
-Client
-  |
-  v
-Service (Kubernetes)
-  |
-  v
-FastAPI Application (Pod)
-  |
-  v
-PostgreSQL (Pod + PVC)
+```text
+.
+├── app/                # FastAPI application source code
+├── docker/
+│   └── Dockerfile      # Optimized for production
+├── k8s/                # Kubernetes manifests (YAML)
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── configmap.yaml
+│   └── pvc.yaml
+├── docker-compose.yml  # Local development setup
+└── .env.example        # Environment variable template
 
-Tech Stack
+```
 
-FastAPI (Python)
+## 🛠 Tech Stack
 
-PostgreSQL
+| Category | Technology |
+| --- | --- |
+| **Backend** | FastAPI (Python 3.9+) |
+| **Database** | PostgreSQL 15 |
+| **Container** | Docker / Docker Compose |
+| **Orchestration** | Kubernetes (kind) |
 
-Docker
+## 🚀 Getting Started
 
-Docker Compose
+### 1. Local Development (Docker Compose)
 
-Kubernetes (kind)
+Use Docker Compose to quickly spin up the app and database.
 
-ConfigMap / Secret
-
-PersistentVolumeClaim (PVC)
-
-Features
-
-Simple FastAPI web server
-
-PostgreSQL connectivity check
-
-Health check endpoint for Kubernetes
-
-Dockerized environment
-
-Kubernetes deployment configuration
-
-Environment-based configuration
-
-Endpoints
-Endpoint	Description
-/	Basic health check
-/db	Verifies database connectivity
-/healthz	Used for Kubernetes liveness/readiness probes
-Local Development (Docker Compose)
-Build and start services
+```bash
+# Build and start
 docker compose up --build
 
-Access
+# Access
+# App: http://localhost:8000
+# DB Connectivity: http://localhost:8000/db
 
-App: http://localhost:8000
+```
 
-DB check: http://localhost:8000/db
+### 2. Kubernetes Deployment (kind)
 
-Stop
-Ctrl + C
+Deploy the application to a local Kubernetes cluster.
 
+```bash
+# 1. Create a kind cluster
+kind create cluster --name infra-cluster
 
-or
-
-docker compose down
-
-Kubernetes Deployment (kind)
-1. Create a cluster
-kind create cluster
-
-2. Build the application image
+# 2. Build the image
 docker build -t infra-demo:0.1 -f docker/Dockerfile .
 
-3. Load image into kind
-kind load docker-image infra-demo:0.1 --name kind
+# 3. Load the image into the cluster
+kind load docker-image infra-demo:0.1 --name infra-cluster
 
-4. Apply Kubernetes manifests
+# 4. Apply all manifests
 kubectl apply -f k8s/
 
-5. Check resources
-kubectl -n infra-demo get pods,svc
+# 5. Verify the deployment
+kubectl get pods -n infra-demo
+kubectl get svc -n infra-demo
 
-6. Access via port-forward
-kubectl -n infra-demo port-forward svc/app 8080:80
+# 6. Access the application
+kubectl port-forward svc/app-service 8080:80 -n infra-demo
 
+```
 
-Then open:
+## 📡 Endpoints
 
-http://localhost:8080
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/` | `GET` | Welcome message |
+| `/db` | `GET` | Health check for DB connection |
+| `/healthz` | `GET` | K8s Liveness/Readiness probe |
 
-http://localhost:8080/db
+## 🔍 Troubleshooting
 
-Configuration
+* **ImagePullBackOff**: Ensure the image name in `deployment.yaml` matches the tag used in `docker build` and that you've run `kind load`.
+* **DB Connection Refused**: Check if the `POSTGRES_HOST` in the ConfigMap matches the Service name of the PostgreSQL pod.
 
-This project uses environment variables for configuration.
+## 📈 Future Improvements
 
-Example values are provided in .env.example.
+* [ ] Add **Ingress Controller** (Nginx)
+* [ ] Implement **Resource Quotas** and Limits
+* [ ] Integrate **Prometheus/Grafana** for monitoring
+* [ ] Automate deployment with **GitHub Actions**
 
-Actual secrets and local values should be stored in .env, which is excluded from Git.
+---
 
-Health Checks
+**Author:** [Ikayou](https://www.google.com/search?q=https://github.com/Ikayou)
 
-Kubernetes health probes are configured:
-
-Readiness Probe: /healthz
-
-Liveness Probe: /healthz
-
-These ensure that Kubernetes can automatically restart unhealthy containers.
-
-Troubleshooting
-ImagePullBackOff / ErrImagePull
-
-Make sure the image exists locally:
-
-docker images
-
-
-And is loaded into kind:
-
-kind load docker-image infra-demo:0.1 --name kind
-
-Pod not starting
-kubectl describe pod <pod-name>
-kubectl logs <pod-name>
-
-What I Learned
-
-Through this project, I practiced:
-
-Writing Dockerfiles
-
-Building and tagging Docker images
-
-Using Docker Compose for local development
-
-Deploying applications to Kubernetes
-
-Understanding Deployments, Services, ConfigMaps, Secrets, and PVCs
-
-Debugging Kubernetes issues
-
-Managing environment-based configurations
-
-Using health checks for container orchestration
-
-Future Improvements
-
-Add Ingress + TLS
-
-Resource limits (CPU/memory)
-
-Horizontal Pod Autoscaling
-
-CI/CD pipeline
-
-Monitoring (Prometheus, Grafana)
-
-Author
-
-Ikayou
-
-Important Note
-
-This is a learning project.
-All credentials and configuration values are for demonstration purposes only.
+---
